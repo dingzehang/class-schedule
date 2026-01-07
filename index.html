@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>社群录课排班表 (云同步版)</title>
+<title>社群录课排班表 (云同步·预览版)</title>
 <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
 <style>
     body { font-family: "Microsoft YaHei", sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; user-select: none; }
@@ -33,18 +33,29 @@
 
     /* 管理面板 */
     #adminModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-    .modal-content { background: white; padding: 25px; border-radius: 10px; width: 85%; max-width: 320px; text-align: center; }
-    .modal-btn { margin: 8px 0; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; width: 100%; font-weight: bold; transition: 0.2s; }
+    .modal-content { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 340px; text-align: center; }
+    .modal-btn { margin: 5px 0; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; width: 100%; font-weight: bold; transition: 0.2s; }
+    
     .btn-holiday { background: #28a745; color: white; } 
     .btn-temp { background: #fd7e14; color: white; }    
     .btn-resume { background: #007bff; color: white; }  
-    .btn-adjust { background: #ffc107; color: #333; width: 48%; display: inline-block; font-size: 12px; }
+    
+    /* 调整按钮样式 */
+    .adjust-group { display: flex; gap: 10px; margin-top: 10px; }
+    .btn-adjust { flex: 1; padding: 10px; font-size: 13px; color: white; }
+    .btn-prev { background: #dc3545; } /* 红色 -1 */
+    .btn-next { background: #28a745; } /* 绿色 +1 */
+    
     .btn-close { background: #6c757d; color: white; margin-top: 15px; }
     .divider { height: 1px; background: #eee; margin: 15px 0; }
-    
-    /* 加载遮罩 */
-    .loading-mask { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 20; display: flex; justify-content: center; align-items: center; color: #666; font-size: 0.9rem; flex-direction: column;}
 
+    /* 预览区样式 (新) */
+    .preview-card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px; margin-bottom: 15px; text-align: left; }
+    .preview-title { font-size: 0.85em; color: #666; margin-bottom: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px; font-weight: bold; }
+    .preview-row { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 0.95em; color: #333; }
+    .preview-val { font-weight: bold; color: #007bff; }
+    
+    .loading-mask { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 20; display: flex; justify-content: center; align-items: center; color: #666; font-size: 0.9rem; flex-direction: column;}
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
@@ -73,7 +84,6 @@
         <div class="freeze-sub">进度已冻结，安心度假！</div>
         <div style="font-size:0.8em; color:#999; margin-top:15px;" class="freeze-info"></div>
     </div>
-
     <div id="tempFreezeMode" class="freeze-view">
         <span class="freeze-icon">⏸️</span>
         <div class="freeze-text">临时暂停排班</div>
@@ -90,7 +100,7 @@
     <div class="modal-content">
         <h3>⚙️ 云端管理后台</h3>
         <p style="font-size:0.85em; color:#666;">当前状态：<span id="modalStatusText">读取中...</span></p>
-        <div id="syncStatus" style="font-size:0.75em; color:#999; margin-bottom:10px;"></div>
+        <div id="syncStatus" style="font-size:0.75em; color:#999; margin-bottom:5px; height:15px;"></div>
         
         <div id="runningControls">
             <button class="modal-btn btn-holiday" onclick="startFreeze('holiday')">🏖️ 开启寒暑假 (长期)</button>
@@ -102,42 +112,41 @@
         </div>
         
         <div class="divider"></div>
-        <p style="font-size:0.8em; color:#999; margin:5px 0;">特殊情况微调 (当前延后: <span id="offsetVal">0</span>周)</p>
-        <div>
-            <button class="modal-btn btn-adjust" onclick="adjustOffset(1)">+1周 (跳过)</button>
-            <button class="modal-btn btn-adjust" onclick="adjustOffset(-1)">-1周 (回退)</button>
+        
+        <div class="preview-card">
+            <div class="preview-title">👀 调整结果预览 (Offset: <span id="offsetVal">0</span>)</div>
+            <div class="preview-row"><span>初一:</span> <span class="preview-val" id="pre-g1">--</span></div>
+            <div class="preview-row"><span>初二:</span> <span class="preview-val" id="pre-g2">--</span></div>
+            <div class="preview-row"><span>初三:</span> <span class="preview-val" id="pre-g3">--</span></div>
         </div>
+
+        <div class="adjust-group">
+            <button class="modal-btn btn-adjust btn-prev" onclick="adjustOffset(-1)">⏪ 往前 (-1周)</button>
+            <button class="modal-btn btn-adjust btn-next" onclick="adjustOffset(1)">⏩ 往后 (+1周)</button>
+        </div>
+
         <button class="modal-btn btn-close" onclick="closeAdmin()">关闭</button>
     </div>
 </div>
 
 <script>
     // ================= 配置区 =================
-    // 你的ID和Key (已配置好服务器地址)
     const LC_APP_ID = "1OHISQN99CFPAQn6K0aZQRpm-gzGzoHsz"; 
     const LC_APP_KEY = "y0pWlEyJrFr3P4LYu7GkIYfK";
-    const LC_SERVER_URL = "https://1ohisqn9.lc-cn-n1-shared.com";
+    const LC_SERVER_URL = "https://1ohisqn9.lc-cn-n1-shared.com"; // 自动推算的域名
 
-    // 🔴 关键：这里使用的是新表名
-    const DB_CLASS_NAME = 'ClassScheduleConfig';
-
+    const DB_CLASS_NAME = 'ClassScheduleConfig'; // 独立的表名
     const baseDate = new Date('2025-12-01T00:00:00');
     const teachers = ["康康老师", "王老师", "石老师", "何老师", "丁老师"];
     const ADMIN_PASSWORD = "888"; 
     // =========================================
 
-    let globalState = {
-        freezeMode: 'none',   // 'none', 'holiday', 'temp'
-        offset: 0,            // 手动调整的周数
-        frozenEffective: 0,   // 冻结时的有效周数
-        objectId: null        // 云端ID
-    };
-
+    let globalState = { freezeMode: 'none', offset: 0, frozenEffective: 0, objectId: null };
     let isCloudReady = false;
 
-    // 初始化
+    // 初始化检查
     if (typeof AV === 'undefined') {
-        document.getElementById('loadingMask').innerHTML = "云端脚本加载失败<br>请检查网络";
+        document.getElementById('loadingMask').innerHTML = "脚本加载失败<br>请检查网络";
     } else {
         try {
             AV.init({ appId: LC_APP_ID, appKey: LC_APP_KEY, serverURLs: LC_SERVER_URL });
@@ -159,14 +168,14 @@
                 globalState.frozenEffective = data.get('frozenEffective') || 0;
                 globalState.objectId = data.id;
             } else {
-                // 初始化新数据 (带权限锁修复)
+                // 初始化新数据
                 const Config = AV.Object.extend(DB_CLASS_NAME);
                 const config = new Config();
                 config.set('freezeMode', 'none');
                 config.set('offset', 0);
                 config.set('frozenEffective', 0);
                 
-                // 开启公共读写权限
+                // 强制开启权限
                 const acl = new AV.ACL();
                 acl.setPublicReadAccess(true);
                 acl.setPublicWriteAccess(true);
@@ -179,7 +188,7 @@
             updateUI(); 
         } catch (error) {
             console.error(error);
-            document.getElementById('loadingMask').innerHTML = "网络连接失败<br><button onclick='location.reload()'>刷新</button>";
+            document.getElementById('loadingMask').innerHTML = "连接失败<br><button onclick='location.reload()'>重试</button>";
         }
     }
 
@@ -187,7 +196,8 @@
     async function saveToCloud() {
         if(!globalState.objectId) return;
         const statusDiv = document.getElementById('syncStatus');
-        statusDiv.innerText = "☁️ 正在同步到云端...";
+        statusDiv.innerText = "⏳ 正在同步...";
+        statusDiv.style.color = "orange";
         
         const config = AV.Object.createWithoutData(DB_CLASS_NAME, globalState.objectId);
         config.set('freezeMode', globalState.freezeMode);
@@ -197,61 +207,65 @@
         try {
             await config.save();
             statusDiv.innerText = "✅ 同步成功";
+            statusDiv.style.color = "green";
             setTimeout(() => statusDiv.innerText = "", 2000);
             updateUI();
         } catch (error) {
             alert("同步失败：" + error.message);
-            statusDiv.innerText = "❌ 同步失败";
+            statusDiv.innerText = "❌ 失败";
+            statusDiv.style.color = "red";
         }
     }
 
-    function updateDateDisplay() {
-        const today = new Date();
-        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-        document.getElementById('currentDate').innerText = today.toLocaleDateString('zh-CN', options);
-    }
-
+    // 计算逻辑
     function getRealWeeks() {
         const today = new Date();
         const diffTime = today - baseDate;
         return Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
     }
 
-    function getSchedule() {
-        updateDateDisplay();
+    function calculateRosterList() {
         const realWeeks = getRealWeeks();
         const effectiveWeeks = realWeeks - globalState.offset;
 
         let shift = effectiveWeeks % 5;
         if (shift < 0) shift = 5 + shift;
 
-        const currentList = [];
+        const list = [];
         for (let i = 0; i < 5; i++) {
             let originalIndex = (i - shift + 5) % 5;
-            currentList.push(teachers[originalIndex]);
+            list.push(teachers[originalIndex]);
         }
+        return list; // 返回 [初一, 初二, 初三, 轮空1, 轮空2]
+    }
 
+    // 界面更新
+    function updateUI() {
+        const today = new Date();
+        document.getElementById('currentDate').innerText = today.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+
+        const currentList = calculateRosterList();
+        
+        // 更新主界面
         document.getElementById('g1').innerText = currentList[0];
         document.getElementById('g2').innerText = currentList[1];
         document.getElementById('g3').innerText = currentList[2];
         document.getElementById('skip').innerText = currentList[3] + "、" + currentList[4];
 
-        const statusDiv = document.getElementById('statusArea');
-        if (globalState.offset !== 0 && globalState.freezeMode === 'none') {
-            statusDiv.innerHTML = `<span class="status-badge status-delayed">⚠️ 排班偏移 ${globalState.offset} 周</span>`;
-        } else {
-            statusDiv.innerHTML = ``;
-        }
-    }
+        // 更新后台预览区 (这是新增的！)
+        document.getElementById('pre-g1').innerText = currentList[0];
+        document.getElementById('pre-g2').innerText = currentList[1];
+        document.getElementById('pre-g3').innerText = currentList[2];
+        document.getElementById('offsetVal').innerText = globalState.offset;
 
-    function updateUI() {
+        // 状态切换逻辑
         const listDiv = document.getElementById('scheduleList');
         const holidayDiv = document.getElementById('holidayMode');
         const tempDiv = document.getElementById('tempFreezeMode');
-        
         const runCtrl = document.getElementById('runningControls');
         const pauseCtrl = document.getElementById('pausedControls');
         const modalStatus = document.getElementById('modalStatusText');
+        const statusArea = document.getElementById('statusArea');
 
         listDiv.style.display = 'none';
         holidayDiv.style.display = 'none';
@@ -266,6 +280,7 @@
             pauseCtrl.style.display = 'block';
             modalStatus.innerText = "🏖️ 假期暂停中";
             modalStatus.style.color = "#28a745";
+            statusArea.innerHTML = "";
 
         } else if (globalState.freezeMode === 'temp') {
             tempDiv.style.display = 'block';
@@ -274,6 +289,7 @@
             pauseCtrl.style.display = 'block';
             modalStatus.innerText = "⏸️ 临时冻结中";
             modalStatus.style.color = "#fd7e14";
+            statusArea.innerHTML = "";
 
         } else {
             listDiv.style.display = 'block';
@@ -281,9 +297,13 @@
             pauseCtrl.style.display = 'none';
             modalStatus.innerText = "🔄 正常轮转中";
             modalStatus.style.color = "#007bff";
-            getSchedule(); 
+            
+            if (globalState.offset !== 0) {
+                statusArea.innerHTML = `<span class="status-badge status-delayed">⚠️ 排班偏移 ${globalState.offset} 周</span>`;
+            } else {
+                statusArea.innerHTML = ``;
+            }
         }
-        document.getElementById('offsetVal').innerText = globalState.offset;
     }
 
     // ================= 操作逻辑 =================
@@ -310,7 +330,9 @@
     }
 
     window.adjustOffset = function(change) {
+        // 直接修改内存并更新UI预览，然后后台静默保存
         globalState.offset += change;
+        updateUI(); // 立即让用户看到变化
         saveToCloud();
     }
 
@@ -335,7 +357,7 @@
         if (e.target === document.getElementById('adminModal')) closeAdmin(); 
     });
 
-    setInterval(updateDateDisplay, 1000 * 60 * 60);
+    setInterval(updateUI, 1000 * 60 * 60);
 </script>
 
 </body>
