@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>社群录课排班表 (云同步·预览版)</title>
+<title>社群录课排班表 (后台预览增强版)</title>
 <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
 <style>
     body { font-family: "Microsoft YaHei", sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; user-select: none; }
@@ -49,11 +49,12 @@
     .btn-close { background: #6c757d; color: white; margin-top: 15px; }
     .divider { height: 1px; background: #eee; margin: 15px 0; }
 
-    /* 预览区样式 (新) */
+    /* 预览区样式 */
     .preview-card { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px; margin-bottom: 15px; text-align: left; }
     .preview-title { font-size: 0.85em; color: #666; margin-bottom: 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px; font-weight: bold; }
     .preview-row { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 0.95em; color: #333; }
     .preview-val { font-weight: bold; color: #007bff; }
+    .preview-skip-val { font-weight: bold; color: #856404; font-size: 0.9em;} /* 轮空颜色 */
     
     .loading-mask { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 20; display: flex; justify-content: center; align-items: center; color: #666; font-size: 0.9rem; flex-direction: column;}
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -114,10 +115,11 @@
         <div class="divider"></div>
         
         <div class="preview-card">
-            <div class="preview-title">👀 调整结果预览 (Offset: <span id="offsetVal">0</span>)</div>
+            <div class="preview-title">👀 调整预览 (Offset: <span id="offsetVal">0</span>)</div>
             <div class="preview-row"><span>初一:</span> <span class="preview-val" id="pre-g1">--</span></div>
             <div class="preview-row"><span>初二:</span> <span class="preview-val" id="pre-g2">--</span></div>
             <div class="preview-row"><span>初三:</span> <span class="preview-val" id="pre-g3">--</span></div>
+            <div class="preview-row"><span>☕轮空:</span> <span class="preview-skip-val" id="pre-skip">--</span></div>
         </div>
 
         <div class="adjust-group">
@@ -135,7 +137,7 @@
     const LC_APP_KEY = "y0pWlEyJrFr3P4LYu7GkIYfK";
     const LC_SERVER_URL = "https://1ohisqn9.lc-cn-n1-shared.com"; // 自动推算的域名
 
-    const DB_CLASS_NAME = 'ClassScheduleConfig'; // 独立的表名
+    const DB_CLASS_NAME = 'ClassScheduleConfig'; // 社群排班表
     const baseDate = new Date('2025-12-01T00:00:00');
     const teachers = ["康康老师", "王老师", "石老师", "何老师", "丁老师"];
     const ADMIN_PASSWORD = "888"; 
@@ -252,10 +254,11 @@
         document.getElementById('g3').innerText = currentList[2];
         document.getElementById('skip').innerText = currentList[3] + "、" + currentList[4];
 
-        // 更新后台预览区 (这是新增的！)
+        // 更新后台预览区
         document.getElementById('pre-g1').innerText = currentList[0];
         document.getElementById('pre-g2').innerText = currentList[1];
         document.getElementById('pre-g3').innerText = currentList[2];
+        document.getElementById('pre-skip').innerText = currentList[3] + "、" + currentList[4]; // 增加轮空预览
         document.getElementById('offsetVal').innerText = globalState.offset;
 
         // 状态切换逻辑
