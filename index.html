@@ -41,8 +41,10 @@
     /* 调整按钮样式 */
     .adjust-group { display: flex; gap: 10px; margin-top: 10px; }
     .btn-adjust { flex: 1; padding: 10px; font-size: 13px; color: white; }
-    .btn-prev { background: #dc3545; } /* 红色 -1 */
-    .btn-next { background: #28a745; } /* 绿色 +1 */
+    
+    /* 🔴 按您的要求修改颜色 */
+    .btn-red { background: #dc3545; }   /* 红色 */
+    .btn-green { background: #28a745; } /* 绿色 */
     
     .btn-close { background: #6c757d; color: white; margin-top: 15px; }
     .divider { height: 1px; background: #eee; margin: 15px 0; }
@@ -120,8 +122,8 @@
         </div>
 
         <div class="adjust-group">
-            <button class="modal-btn btn-adjust btn-prev" onclick="adjustOffset(-1)">⏪ 往前调 (-1)</button>
-            <button class="modal-btn btn-adjust btn-next" onclick="adjustOffset(1)">⏩ 往后调 (+1)</button>
+            <button class="modal-btn btn-adjust btn-red" onclick="adjustOffset(-1)">⏪ 往后调 (-1)</button>
+            <button class="modal-btn btn-adjust btn-green" onclick="adjustOffset(1)">⏩ 往前调 (+1)</button>
         </div>
 
         <button class="modal-btn btn-close" onclick="closeAdmin()">关闭 / 返回</button>
@@ -129,17 +131,14 @@
 </div>
 
 <script>
-    // ================= 配置区 =================
     const LC_APP_ID = "1OHISQN99CFPAQn6K0aZQRpm-gzGzoHsz"; 
     const LC_APP_KEY = "y0pWlEyJrFr3P4LYu7GkIYfK";
     const LC_SERVER_URL = "https://1ohisqn9.lc-cn-n1-shared.com"; 
 
-    // 表名保持不变，数据接着用
     const DB_CLASS_NAME = 'ClassScheduleConfig'; 
     const baseDate = new Date('2025-12-01T00:00:00');
     const teachers = ["康康老师", "王老师", "石老师", "何老师", "丁老师"];
     const ADMIN_PASSWORD = "888"; 
-    // =========================================
 
     let globalState = { freezeMode: 'none', offset: 0, frozenEffective: 0, objectId: null };
     let isCloudReady = false;
@@ -166,7 +165,6 @@
                 globalState.frozenEffective = data.get('frozenEffective') || 0;
                 globalState.objectId = data.id;
             } else {
-                // 初始化
                 const Config = AV.Object.extend(DB_CLASS_NAME);
                 const config = new Config();
                 config.set('freezeMode', 'none');
@@ -240,13 +238,12 @@
 
         const currentList = calculateRosterList();
         
-        // 更新主界面
         document.getElementById('g1').innerText = currentList[0];
         document.getElementById('g2').innerText = currentList[1];
         document.getElementById('g3').innerText = currentList[2];
         document.getElementById('skip').innerText = currentList[3] + "、" + currentList[4];
 
-        // 更新后台预览区 (含轮空)
+        // 只有后台能看到偏移值
         document.getElementById('pre-g1').innerText = currentList[0];
         document.getElementById('pre-g2').innerText = currentList[1];
         document.getElementById('pre-g3').innerText = currentList[2];
@@ -291,7 +288,6 @@
         }
     }
 
-    // ================= 操作逻辑 =================
     window.startFreeze = function(type) {
         const currentReal = getRealWeeks();
         const currentEffective = currentReal - globalState.offset;
@@ -315,13 +311,11 @@
     }
 
     window.adjustOffset = function(change) {
-        // change 是 -1 或 +1
         globalState.offset += change;
-        updateUI(); // 立即预览
-        saveToCloud(); // 静默同步
+        updateUI(); 
+        saveToCloud();
     }
 
-    // 后台触发
     let clickCount = 0;
     let clickTimer = null;
     document.getElementById('secretTrigger').addEventListener('click', () => {
