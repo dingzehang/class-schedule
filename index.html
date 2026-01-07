@@ -122,8 +122,8 @@
         </div>
 
         <div class="adjust-group">
-            <button class="modal-btn btn-adjust btn-red" onclick="adjustOffset(-1)">⏪ 错后调 (-1)</button>
-            <button class="modal-btn btn-adjust btn-green" onclick="adjustOffset(1)">⏩ 未来调 (+1)</button>
+            <button class="modal-btn btn-adjust btn-red" onclick="adjustOffset(-1)">⏪ 往后调 (-1周)</button>
+            <button class="modal-btn btn-adjust btn-green" onclick="adjustOffset(1)">⏩ 往前调 (+1周)</button>
         </div>
 
         <button class="modal-btn btn-close" onclick="closeAdmin()">关闭 / 返回</button>
@@ -222,7 +222,8 @@
 
     function calculateRosterList() {
         const realWeeks = getRealWeeks();
-        // 🔴 修正公式：(i - shift) 才是顺时针轮转 (初一->初二->初三)
+        // 核心逻辑：offset + realWeeks 控制轮转
+        // offset + 1 (往前调) -> effectiveWeeks 变大 -> shift 变大 -> 老师向后移动（升年级）
         const effectiveWeeks = realWeeks + globalState.offset;
 
         let shift = effectiveWeeks % 5;
@@ -230,7 +231,6 @@
 
         const list = [];
         for (let i = 0; i < 5; i++) {
-            // 使用 (i - shift + 5) % 5 来实现 A老师: Pos0 -> Pos1 -> Pos2 的效果
             let originalIndex = (i - shift + 5) % 5;
             list.push(teachers[originalIndex]);
         }
