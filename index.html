@@ -42,9 +42,9 @@
     .adjust-group { display: flex; gap: 10px; margin-top: 10px; }
     .btn-adjust { flex: 1; padding: 10px; font-size: 13px; color: white; }
     
-    /* 🔴 按您的要求修改颜色 */
-    .btn-red { background: #dc3545; }   /* 红色 */
-    .btn-green { background: #28a745; } /* 绿色 */
+    /* 🔴 颜色修正 */
+    .btn-red { background: #dc3545; }   /* 红色：往后退 */
+    .btn-green { background: #28a745; } /* 绿色：往前进 */
     
     .btn-close { background: #6c757d; color: white; margin-top: 15px; }
     .divider { height: 1px; background: #eee; margin: 15px 0; }
@@ -131,14 +131,17 @@
 </div>
 
 <script>
+    // ================= 配置区 =================
     const LC_APP_ID = "1OHISQN99CFPAQn6K0aZQRpm-gzGzoHsz"; 
     const LC_APP_KEY = "y0pWlEyJrFr3P4LYu7GkIYfK";
     const LC_SERVER_URL = "https://1ohisqn9.lc-cn-n1-shared.com"; 
 
     const DB_CLASS_NAME = 'ClassScheduleConfig'; 
     const baseDate = new Date('2025-12-01T00:00:00');
+    // 列表顺序：康(0), 王(1), 石(2), 何(3), 丁(4)
     const teachers = ["康康老师", "王老师", "石老师", "何老师", "丁老师"];
     const ADMIN_PASSWORD = "888"; 
+    // =========================================
 
     let globalState = { freezeMode: 'none', offset: 0, frozenEffective: 0, objectId: null };
     let isCloudReady = false;
@@ -219,14 +222,16 @@
 
     function calculateRosterList() {
         const realWeeks = getRealWeeks();
-        const effectiveWeeks = realWeeks - globalState.offset;
+        // 🔴 核心修正：Offset 逻辑改为 (自然周 + 偏移量)
+        // 这样 +1 就是往后走(下一人)，-1 就是往前走(上一人)
+        const effectiveWeeks = realWeeks + globalState.offset;
 
         let shift = effectiveWeeks % 5;
         if (shift < 0) shift = 5 + shift;
 
         const list = [];
         for (let i = 0; i < 5; i++) {
-            let originalIndex = (i - shift + 5) % 5;
+            let originalIndex = (i + shift) % 5; // 简化算法，直接按偏移取
             list.push(teachers[originalIndex]);
         }
         return list; 
@@ -238,12 +243,13 @@
 
         const currentList = calculateRosterList();
         
+        // 更新主界面 (无任何警告)
         document.getElementById('g1').innerText = currentList[0];
         document.getElementById('g2').innerText = currentList[1];
         document.getElementById('g3').innerText = currentList[2];
         document.getElementById('skip').innerText = currentList[3] + "、" + currentList[4];
 
-        // 只有后台能看到偏移值
+        // 更新后台预览
         document.getElementById('pre-g1').innerText = currentList[0];
         document.getElementById('pre-g2').innerText = currentList[1];
         document.getElementById('pre-g3').innerText = currentList[2];
@@ -288,9 +294,10 @@
         }
     }
 
+    // ================= 操作逻辑 =================
     window.startFreeze = function(type) {
         const currentReal = getRealWeeks();
-        const currentEffective = currentReal - globalState.offset;
+        const currentEffective = currentReal + globalState.offset; // 逻辑同步修改
         globalState.frozenEffective = currentEffective;
         globalState.freezeMode = type;
         saveToCloud().then(() => {
@@ -301,7 +308,8 @@
     window.endFreeze = function() {
         if (globalState.frozenEffective !== null) {
             const currentReal = getRealWeeks();
-            globalState.offset = currentReal - globalState.frozenEffective;
+            // 恢复逻辑：Offset = 冻结时的进度 - 现在的真实时间
+            globalState.offset = globalState.frozenEffective - currentReal;
         }
         globalState.freezeMode = 'none';
         globalState.frozenEffective = 0; 
@@ -312,8 +320,8 @@
 
     window.adjustOffset = function(change) {
         globalState.offset += change;
-        updateUI(); 
-        saveToCloud();
+        updateUI(); // 立即预览
+        saveToCloud(); // 静默同步
     }
 
     let clickCount = 0;
