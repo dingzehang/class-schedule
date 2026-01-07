@@ -41,6 +41,8 @@
     /* 调整按钮样式 */
     .adjust-group { display: flex; gap: 10px; margin-top: 10px; }
     .btn-adjust { flex: 1; padding: 10px; font-size: 13px; color: white; }
+    
+    /* 🔴 自定义颜色 */
     .btn-red { background: #dc3545; }   /* 红色 */
     .btn-green { background: #28a745; } /* 绿色 */
     
@@ -112,7 +114,7 @@
         <div class="divider"></div>
         
         <div class="preview-card">
-            <div class="preview-title">👀 调整预览 (当前偏移: <span id="offsetVal">0</span>)</div>
+            <div class="preview-title">👀 调整预览 (Offset: <span id="offsetVal">0</span>)</div>
             <div class="preview-row"><span>初一:</span> <span class="preview-val" id="pre-g1">--</span></div>
             <div class="preview-row"><span>初二:</span> <span class="preview-val" id="pre-g2">--</span></div>
             <div class="preview-row"><span>初三:</span> <span class="preview-val" id="pre-g3">--</span></div>
@@ -120,8 +122,8 @@
         </div>
 
         <div class="adjust-group">
-            <button class="modal-btn btn-adjust btn-red" onclick="adjustOffset(-1)">⏪ 往回调 (-1)</button>
-            <button class="modal-btn btn-adjust btn-green" onclick="adjustOffset(1)">⏩ 往前调 (+1)</button>
+            <button class="modal-btn btn-adjust btn-red" onclick="adjustOffset(-1)">⏪ 错后调 (-1)</button>
+            <button class="modal-btn btn-adjust btn-green" onclick="adjustOffset(1)">⏩ 未来调 (+1)</button>
         </div>
 
         <button class="modal-btn btn-close" onclick="closeAdmin()">关闭 / 返回</button>
@@ -135,8 +137,6 @@
     const LC_SERVER_URL = "https://1ohisqn9.lc-cn-n1-shared.com"; 
 
     const DB_CLASS_NAME = 'ClassScheduleConfig'; 
-    
-    // 🔴 修正：基准日改为 2026-01-07
     const baseDate = new Date('2026-01-07T00:00:00');
     // 顺序：0康 1王 2石 3何 4丁
     const teachers = ["康康老师", "王老师", "石老师", "何老师", "丁老师"];
@@ -222,6 +222,7 @@
 
     function calculateRosterList() {
         const realWeeks = getRealWeeks();
+        // 🔴 修正公式：(i - shift) 才是顺时针轮转 (初一->初二->初三)
         const effectiveWeeks = realWeeks + globalState.offset;
 
         let shift = effectiveWeeks % 5;
@@ -229,7 +230,8 @@
 
         const list = [];
         for (let i = 0; i < 5; i++) {
-            let originalIndex = (i + shift) % 5;
+            // 使用 (i - shift + 5) % 5 来实现 A老师: Pos0 -> Pos1 -> Pos2 的效果
+            let originalIndex = (i - shift + 5) % 5;
             list.push(teachers[originalIndex]);
         }
         return list; 
