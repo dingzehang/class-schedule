@@ -114,7 +114,7 @@
         <div class="divider"></div>
         
         <div class="preview-card">
-            <div class="preview-title">👀 调整预览 (Offset: <span id="offsetVal">0</span>)</div>
+            <div class="preview-title">👀 本次调整 (Offset: <span id="offsetVal">0</span>)</div>
             <div class="preview-row"><span>初一:</span> <span class="preview-val" id="pre-g1">--</span></div>
             <div class="preview-row"><span>初二:</span> <span class="preview-val" id="pre-g2">--</span></div>
             <div class="preview-row"><span>初三:</span> <span class="preview-val" id="pre-g3">--</span></div>
@@ -143,7 +143,9 @@
     const ADMIN_PASSWORD = "888"; 
     // =========================================
 
+    // 新增 sessionDelta 用于记录"本次"调整了多少，而不是历史总量
     let globalState = { freezeMode: 'none', offset: 0, frozenEffective: 0, objectId: null };
+    let sessionDelta = 0; 
     let isCloudReady = false;
 
     if (typeof AV === 'undefined') {
@@ -222,8 +224,6 @@
 
     function calculateRosterList() {
         const realWeeks = getRealWeeks();
-        // 核心逻辑：offset + realWeeks 控制轮转
-        // offset + 1 (往前调) -> effectiveWeeks 变大 -> shift 变大 -> 老师向后移动（升年级）
         const effectiveWeeks = realWeeks + globalState.offset;
 
         let shift = effectiveWeeks % 5;
@@ -252,7 +252,9 @@
         document.getElementById('pre-g2').innerText = currentList[1];
         document.getElementById('pre-g3').innerText = currentList[2];
         document.getElementById('pre-skip').innerText = currentList[3] + "、" + currentList[4];
-        document.getElementById('offsetVal').innerText = globalState.offset;
+        
+        // 🔴 注意：移除了这里更新 offsetVal 文本的代码
+        // 这样 updateUI 就不会把历史总偏移量覆盖掉我们显示的"本次增量"
 
         const listDiv = document.getElementById('scheduleList');
         const holidayDiv = document.getElementById('holidayMode');
@@ -314,8 +316,14 @@
         });
     }
 
+    // 🔴 核心修改：点击按钮时，同时更新全局Offset(存库用) 和 本次SessionDelta(显示用)
     window.adjustOffset = function(change) {
         globalState.offset += change;
+        sessionDelta += change; 
+        
+        // 只显示本次变化量
+        document.getElementById('offsetVal').innerText = (sessionDelta > 0 ? "+" : "") + sessionDelta;
+        
         updateUI(); 
         saveToCloud();
     }
@@ -329,6 +337,10 @@
         if (clickCount >= 5) {
             clickCount = 0;
             if (prompt("请输入管理员密码：") === ADMIN_PASSWORD) {
+                // 🔴 每次打开管理后台，将本次计数归零
+                sessionDelta = 0;
+                document.getElementById('offsetVal').innerText = "0";
+                
                 document.getElementById('adminModal').style.display = 'flex';
                 updateUI(); 
             }
